@@ -1,0 +1,1458 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Big Math House</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;700&display=swap');
+
+        body {
+            font-family: 'Nunito', sans-serif;
+            margin: 0;
+            overflow: hidden; /* Prevent scrolling, act like an app */
+            background-color: #87CEEB; /* Sky blue */
+            touch-action: none; /* Crucial for custom touch handling */
+            user-select: none;
+        }
+
+        h1, h2, h3, .brand-font {
+            font-family: 'Fredoka One', cursive;
+        }
+
+        /* House Layout */
+        #house-container {
+            width: 90vw;
+            height: 70vh;
+            margin: 8vh auto 0;
+            background: #d2b48c;
+            border: 12px solid #8b4513;
+            border-radius: 10px;
+            display: grid;
+            grid-template-columns: 80px 1fr 1fr 80px;
+            grid-template-rows: 1fr 1fr 1fr;
+            gap: 10px;
+            padding: 10px;
+            position: relative;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+        }
+
+        .room {
+            border: 4px solid #a0522d;
+            border-radius: 8px;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .stairs-bg {
+            background: repeating-linear-gradient(0deg, #b5651d, #b5651d 10px, #8b4513 10px, #8b4513 20px);
+            opacity: 0.7;
+            border: 4px solid #8b4513;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            flex-direction: column;
+            color: white;
+            text-shadow: 1px 1px 2px black;
+        }
+        
+        .bedroom { background: #ffb6c1; grid-column: 2 / 5; grid-row: 1; }
+        .kitchen { background: #ffffe0; grid-column: 2; grid-row: 2; }
+        .living { background: #98fb98; grid-column: 3; grid-row: 2; }
+        .basement { background: #d3d3d3; grid-column: 1 / 4; grid-row: 3; }
+
+        .room-title {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(255,255,255,0.8);
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 1.2rem;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        .bedroom { background: #ffb6c1; }
+        .kitchen { background: #ffffe0; }
+        .living { background: #98fb98; }
+        .basement { background: #d3d3d3; }
+
+        .play-btn {
+            background: linear-gradient(45deg, #ff0000, #ff7f00, #ffff00, #00ff00, #0000ff, #4b0082, #9400d3);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 30px;
+            font-family: 'Fredoka One', cursive;
+            font-size: 1.5rem;
+            cursor: pointer;
+            border: 4px solid white;
+            box-shadow: 0 4px 0 #333;
+            transition: transform 0.1s;
+            text-shadow: 2px 2px 0 #000;
+            z-index: 10;
+        }
+        .play-btn:active {
+            transform: translateY(4px);
+            box-shadow: 0 0 0 #333;
+        }
+
+        /* Avatar & Movement */
+        #avatar-container {
+            position: absolute;
+            bottom: 36%;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60px;
+            height: 75px;
+            transition: left 0.1s linear, bottom 0.3s ease-in-out;
+            z-index: 20;
+        }
+        #avatar-sprite {
+            width: 100%;
+            height: 100%;
+            background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="30" r="20" fill="%23fcd5ce"/><rect x="35" y="50" width="30" height="40" fill="%23457b9d" rx="10"/><circle cx="35" cy="55" r="8" fill="%23fcd5ce"/><circle cx="65" cy="55" r="8" fill="%23fcd5ce"/></svg>') no-repeat center;
+            background-size: contain;
+        }
+        .controls {
+            position: absolute;
+            bottom: 20px;
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            padding: 0 50px;
+            pointer-events: none;
+        }
+        .control-btn {
+            width: 70px;
+            height: 70px;
+            background: #fff;
+            border: 4px solid #333;
+            border-radius: 50%;
+            font-size: 2rem;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            pointer-events: auto;
+            cursor: pointer;
+            box-shadow: 0 4px 0 #333;
+        }
+        .control-btn:active {
+            transform: translateY(4px);
+            box-shadow: 0 0 0 #333;
+        }
+
+        /* Modals & Overlays */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8);
+            z-index: 100;
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-content {
+            background: white;
+            border-radius: 20px;
+            padding: 20px;
+            width: 90%;
+            max-width: 800px;
+            max-height: 90vh;
+            overflow-y: auto;
+            position: relative;
+            border: 8px solid #4a90e2;
+        }
+        .close-btn {
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            font-size: 2rem;
+            color: #ff4757;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        /* Furniture & Dragging */
+        .furniture-item {
+            width: 60px;
+            height: 60px;
+            font-size: 2.5rem;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: grab;
+            position: absolute;
+            user-select: none;
+            touch-action: none;
+            z-index: 15;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        .furniture-item:active { cursor: grabbing; }
+
+        /* Minigames Specifics */
+        .flashcard {
+            perspective: 1000px;
+            width: 100%;
+            max-width: 500px;
+            height: 300px;
+            margin: 0 auto;
+        }
+        .flashcard-inner {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            text-align: center;
+            transition: transform 0.6s;
+            transform-style: preserve-3d;
+            box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2);
+            border-radius: 20px;
+        }
+        .flashcard.flipped .flashcard-inner {
+            transform: rotateY(180deg);
+        }
+        .flashcard-front, .flashcard-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            border-radius: 20px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        .flashcard-front {
+            background-color: #6c5ce7;
+            color: white;
+            font-size: 5rem;
+            cursor: pointer;
+        }
+        .flashcard-back {
+            background-color: white;
+            color: black;
+            transform: rotateY(180deg);
+            border: 4px solid #6c5ce7;
+        }
+        .mcq-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            width: 100%;
+            margin-top: 20px;
+        }
+        .mcq-btn {
+            background: #f1f2f6;
+            border: 3px solid #dfe4ea;
+            padding: 10px;
+            border-radius: 10px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        
+        /* New Minigame Layouts */
+        .card-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 15px;
+            width: 100%;
+            max-width: 600px;
+            margin: 10px auto;
+        }
+        
+        .small-card {
+            aspect-ratio: 1;
+            background: #6c5ce7;
+            color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 3rem;
+            border-radius: 15px;
+            cursor: pointer;
+            transition: transform 0.2s, opacity 0.3s;
+            box-shadow: 0 4px 0 #4834d4;
+        }
+        .small-card:active { transform: translateY(4px); box-shadow: 0 0 0 #4834d4; }
+        .small-card.hidden-card { opacity: 0; pointer-events: none; }
+        
+        .matching-card {
+            aspect-ratio: 1;
+            perspective: 1000px;
+            cursor: pointer;
+        }
+        .matching-inner {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            transition: transform 0.6s;
+            transform-style: preserve-3d;
+        }
+        .matching-card.flipped .matching-inner { transform: rotateY(180deg); }
+        .matching-front, .matching-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            border-radius: 10px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 5px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        .matching-front {
+            background-color: #87CEEB;
+            color: #1e3799;
+            font-family: 'Fredoka One', cursive;
+            font-size: 3rem;
+            border: 3px solid #1e3799;
+        }
+        .matching-back {
+            background-color: white;
+            color: #333;
+            transform: rotateY(180deg);
+            border: 3px solid #87CEEB;
+            font-size: 1.1rem;
+            font-weight: bold;
+        }
+        .matching-card.matched { opacity: 0; pointer-events: none; transition: opacity 0.5s; }
+
+        .speed-timer {
+            font-size: 4rem;
+            font-family: 'Fredoka One', cursive;
+            color: #ff4757;
+            text-shadow: 2px 2px 0px #333;
+            margin-bottom: -10px;
+        }
+
+        .scale-container {
+            display: flex;
+            justify-content: center;
+            align-items: flex-end;
+            height: 200px;
+            margin: 20px 0;
+            position: relative;
+        }
+        .scale-arm {
+            width: 400px;
+            height: 20px;
+            background: #576574;
+            border-radius: 10px;
+            position: absolute;
+            bottom: 50px;
+            transition: transform 0.5s ease;
+            display: flex;
+            justify-content: space-between;
+        }
+        .scale-base {
+            width: 0;
+            height: 0;
+            border-left: 40px solid transparent;
+            border-right: 40px solid transparent;
+            border-bottom: 60px solid #222f3e;
+        }
+        .scale-bucket {
+            width: 140px;
+            height: 80px;
+            background: rgba(84, 160, 255, 0.3);
+            border: 2px dashed #2e86de;
+            border-radius: 10px;
+            transform: translateY(-80px);
+            display: flex;
+            gap: 10px;
+            padding: 10px;
+            align-items: center;
+            justify-content: center;
+        }
+        .scale-slot-circle {
+            width: 50px;
+            height: 50px;
+            border: 3px dashed #2f3542;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: rgba(255,255,255,0.5);
+        }
+        .scale-num {
+            background: #ff9f43;
+            color: white;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 1.2rem;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 4px 0 #c8d6e5;
+            user-select: none;
+        }
+        .number-bank {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-top: 40px;
+            min-height: 60px;
+        }
+
+        .tts-btn {
+            background: #ff9ff3;
+            border: none;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: inline-flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            box-shadow: 0 3px 0 #f368e0;
+            margin-left: 10px;
+        }
+
+        /* House Mode & Animations */
+        #house-container {
+            transition: transform 0.5s ease-in-out, transform-origin 0.5s ease-in-out;
+        }
+        @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-20px); } }
+        @keyframes wiggle { 0%, 100% { transform: rotate(0deg); } 25% { transform: rotate(-15deg); } 75% { transform: rotate(15deg); } }
+        @keyframes toggleLight { 0% { filter: brightness(1); } 50% { filter: brightness(1.5) drop-shadow(0 0 10px yellow); } 100% { filter: brightness(1); } }
+        .anim-bounce { animation: bounce 0.5s ease; }
+        .anim-wiggle { animation: wiggle 0.5s ease; }
+        .anim-light { animation: toggleLight 0.5s ease; }
+    </style>
+</head>
+<body>
+
+    <!-- HUD -->
+    <div class="fixed top-0 w-full p-4 flex justify-between items-center z-50 pointer-events-none">
+        <div class="flex items-center gap-4 pointer-events-auto">
+            <div class="bg-yellow-400 text-yellow-900 px-6 py-2 rounded-full font-bold text-2xl border-4 border-yellow-500 shadow-lg flex items-center gap-2">
+                <i class="fas fa-coins"></i> <span id="coin-counter">50</span>
+            </div>
+            <button onclick="openSettings()" class="bg-gray-200 p-3 rounded-full border-4 border-gray-400 shadow-lg text-xl">
+                <i class="fas fa-cog"></i>
+            </button>
+            <button onclick="toggleHouseMode()" id="house-mode-btn" class="bg-indigo-500 text-white px-6 py-2 rounded-full font-bold text-xl border-4 border-indigo-700 shadow-lg">
+                <i class="fas fa-search-plus"></i> House Mode
+            </button>
+        </div>
+        <button onclick="openCloset()" class="bg-purple-500 text-white px-6 py-2 rounded-full font-bold text-2xl border-4 border-purple-700 shadow-lg flex items-center gap-2 pointer-events-auto">
+            <i class="fas fa-door-open"></i> The Closet
+        </button>
+    </div>
+
+    <!-- House Environment -->
+    <div id="house-container">
+        <!-- Floor 3 -->
+        <div class="stairs-bg" style="grid-column: 1; grid-row: 1;">⬆️ Top</div>
+        <div class="room bedroom" id="room-bedroom">
+            <div class="room-title">Bedroom</div>
+            <button class="play-btn" onclick="startMinigame('bedroom')">Play!</button>
+        </div>
+        
+        <!-- Floor 2 -->
+        <div class="stairs-bg" style="grid-column: 1; grid-row: 2;">⬇️ Mid</div>
+        <div class="room kitchen" id="room-kitchen">
+            <div class="room-title">Kitchen</div>
+            <button class="play-btn" onclick="startMinigame('kitchen')">Play!</button>
+        </div>
+        <div class="room living" id="room-living">
+            <div class="room-title">Living Room</div>
+            <button class="play-btn" onclick="startMinigame('living')">Play!</button>
+        </div>
+        <div class="stairs-bg" style="grid-column: 4; grid-row: 2;">⬆️ Mid</div>
+
+        <!-- Floor 1 -->
+        <div class="room basement" id="room-basement">
+            <div class="room-title">Basement</div>
+            <button class="play-btn" onclick="startMinigame('basement')">Play!</button>
+        </div>
+        <div class="stairs-bg" style="grid-column: 4; grid-row: 3;">⬇️ Bot</div>
+
+        <!-- Avatar moved inside house for relative floor positioning -->
+        <div id="avatar-container">
+            <div id="avatar-sprite"></div>
+        </div>
+    </div>
+
+    <!-- Controls -->
+    <div class="controls">
+        <div class="control-btn" onmousedown="moveAvatar('left')" onmouseup="stopAvatar()" ontouchstart="moveAvatar('left')" ontouchend="stopAvatar()"><i class="fas fa-arrow-left"></i></div>
+        <div class="control-btn" onmousedown="moveAvatar('up')" onmouseup="stopAvatar()" ontouchstart="moveAvatar('up')" ontouchend="stopAvatar()"><i class="fas fa-arrow-up"></i></div>
+        <div class="control-btn" onmousedown="moveAvatar('down')" onmouseup="stopAvatar()" ontouchstart="moveAvatar('down')" ontouchend="stopAvatar()"><i class="fas fa-arrow-down"></i></div>
+        <div class="control-btn" onmousedown="moveAvatar('right')" onmouseup="stopAvatar()" ontouchstart="moveAvatar('right')" ontouchend="stopAvatar()"><i class="fas fa-arrow-right"></i></div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settings-modal" class="modal">
+        <div class="modal-content text-center">
+            <span class="close-btn" onclick="closeModal('settings-modal')">&times;</span>
+            <h2 class="text-3xl brand-font text-gray-800 mb-6">Settings</h2>
+            <div class="flex justify-center gap-6">
+                <button onclick="setGradeLevel('SK')" id="btn-sk" class="px-6 py-4 rounded-xl border-4 border-blue-500 bg-blue-100 text-blue-800 font-bold text-xl">SK (Grade 1 Math)</button>
+                <button onclick="setGradeLevel('Gr2')" id="btn-gr2" class="px-6 py-4 rounded-xl border-4 border-transparent bg-gray-100 text-gray-800 font-bold text-xl">Grade 2 (Grade 3 Math)</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Closet Modal -->
+    <div id="closet-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closeModal('closet-modal')">&times;</span>
+            <h2 class="text-3xl brand-font text-purple-600 mb-4 text-center">The Closet (Shop)</h2>
+            <p class="text-center text-gray-600 mb-4">Tap to buy. Drag bought items into the house!</p>
+            
+            <div class="flex flex-col gap-6" style="max-height: 60vh; overflow-y: auto;" id="shop-categories">
+                <!-- Populated via JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Minigame Modal -->
+    <div id="minigame-modal" class="modal">
+        <div class="modal-content" style="background: #f0f8ff;">
+            <span class="close-btn" onclick="closeMinigame()">&times;</span>
+            
+            <!-- Header -->
+            <div class="flex justify-between items-center mb-4">
+                <h2 id="minigame-title" class="text-3xl brand-font text-blue-600">Minigame</h2>
+                <div class="text-xl font-bold text-gray-600">Question: <span id="mg-q-count">1</span>/10</div>
+            </div>
+
+            <!-- Game Area Container -->
+            <div id="minigame-area" class="w-full flex flex-col items-center">
+                <!-- Content injected via JS -->
+            </div>
+
+            <!-- Feedback -->
+            <div id="mg-feedback" class="text-2xl font-bold text-center mt-6 h-10"></div>
+        </div>
+    </div>
+
+    <script>
+        /* --- GLOBAL STATE --- */
+        let state = {
+            coins: 50,
+            gradeLevel: 'SK', // 'SK' or 'Gr2'
+            inventory: [], // IDs of purchased items
+            placedItems: [], // {id, domId, x, y, roomId}
+            isHouseMode: false
+        };
+
+        // DOM Elements
+        const coinEl = document.getElementById('coin-counter');
+        const avatarEl = document.getElementById('avatar-container');
+        const houseEl = document.getElementById('house-container');
+        let avatarX = 50; 
+        let avatarFloor = 2; // 1=Bot, 2=Mid, 3=Top
+        let moveInterval = null;
+
+        function toggleHouseMode() {
+            state.isHouseMode = !state.isHouseMode;
+            const btn = document.getElementById('house-mode-btn');
+            if (state.isHouseMode) {
+                btn.classList.replace('bg-indigo-500', 'bg-red-500');
+                btn.classList.replace('border-indigo-700', 'border-red-700');
+                btn.innerHTML = '<i class="fas fa-search-minus"></i> Exit Zoom';
+            } else {
+                btn.classList.replace('bg-red-500', 'bg-indigo-500');
+                btn.classList.replace('border-red-700', 'border-indigo-700');
+                btn.innerHTML = '<i class="fas fa-search-plus"></i> House Mode';
+                houseEl.style.transform = 'scale(1)';
+            }
+            updateCamera();
+        }
+
+        function updateCamera() {
+            if (!state.isHouseMode) return;
+            let yOrigin = avatarFloor === 3 ? '15%' : (avatarFloor === 2 ? '50%' : '85%');
+            let xOrigin = avatarX + '%';
+            houseEl.style.transformOrigin = `${xOrigin} ${yOrigin}`;
+            houseEl.style.transform = 'scale(1.8)';
+        }
+
+        function updateAvatarPos() {
+            const bottoms = { 1: '2%', 2: '36%', 3: '70%' };
+            if(avatarEl) {
+                avatarEl.style.left = avatarX + '%';
+                avatarEl.style.bottom = bottoms[avatarFloor];
+            }
+            updateCamera();
+        }
+        
+        // Initial setup
+        setTimeout(updateAvatarPos, 100);
+
+        /* --- SOUND EFFECTS & TTS --- */
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        const audioCtx = new AudioContext();
+
+        function playDing() {
+            try {
+                const osc = audioCtx.createOscillator();
+                const gainNode = audioCtx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(800, audioCtx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(1200, audioCtx.currentTime + 0.1);
+                gainNode.gain.setValueAtTime(0.3, audioCtx.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
+                osc.connect(gainNode);
+                gainNode.connect(audioCtx.destination);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.5);
+            } catch(e) {}
+        }
+
+        function playBuzzer() {
+            try {
+                const osc = audioCtx.createOscillator();
+                const gainNode = audioCtx.createGain();
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(150, audioCtx.currentTime);
+                gainNode.gain.setValueAtTime(0.3, audioCtx.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+                osc.connect(gainNode);
+                gainNode.connect(audioCtx.destination);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.3);
+            } catch(e) {}
+        }
+
+        function speakText(text) {
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.rate = 0.9;
+                window.speechSynthesis.speak(utterance);
+            }
+        }
+
+        /* --- CORE FUNCTIONS --- */
+        function updateCoins(amount) {
+            state.coins += amount;
+            coinEl.innerText = state.coins;
+            coinEl.parentElement.classList.add('scale-110');
+            setTimeout(() => coinEl.parentElement.classList.remove('scale-110'), 200);
+        }
+
+        function openSettings() { document.getElementById('settings-modal').style.display = 'flex'; }
+        function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+        
+        function setGradeLevel(level) {
+            state.gradeLevel = level;
+            document.getElementById('btn-sk').className = `px-6 py-4 rounded-xl border-4 font-bold text-xl ${level === 'SK' ? 'border-blue-500 bg-blue-100 text-blue-800' : 'border-transparent bg-gray-100 text-gray-800'}`;
+            document.getElementById('btn-gr2').className = `px-6 py-4 rounded-xl border-4 font-bold text-xl ${level === 'Gr2' ? 'border-blue-500 bg-blue-100 text-blue-800' : 'border-transparent bg-gray-100 text-gray-800'}`;
+        }
+
+        /* --- AVATAR MOVEMENT --- */
+        function moveAvatar(dir) {
+            if (moveInterval) clearInterval(moveInterval);
+            
+            if (dir === 'up' || dir === 'down') {
+                handleStairs(dir);
+                return;
+            }
+
+            moveInterval = setInterval(() => {
+                if (dir === 'left' && avatarX > 2) avatarX -= 1;
+                if (dir === 'right' && avatarX < 98) avatarX += 1;
+                updateAvatarPos();
+            }, 30);
+        }
+
+        function handleStairs(dir) {
+            // Left stairs (X < 15) connect Floor 3 and Floor 2
+            if (avatarX < 15) {
+                if (dir === 'up' && avatarFloor === 2) avatarFloor = 3;
+                else if (dir === 'down' && avatarFloor === 3) avatarFloor = 2;
+            }
+            // Right stairs (X > 85) connect Floor 2 and Floor 1
+            if (avatarX > 85) {
+                if (dir === 'up' && avatarFloor === 1) avatarFloor = 2;
+                else if (dir === 'down' && avatarFloor === 2) avatarFloor = 1;
+            }
+            updateAvatarPos();
+            playDing();
+        }
+
+        function stopAvatar() {
+            if (moveInterval) clearInterval(moveInterval);
+        }
+
+        /* --- THE CLOSET (SHOP) --- */
+        const shopData = [
+            { category: 'Picture Frames', items: [
+                {id:'pf1', icon:'🖼️', price:50}, {id:'pf2', icon:'🌅', price:60}, {id:'pf3', icon:'🌄', price:60},
+                {id:'pf4', icon:'🌌', price:100}, {id:'pf5', icon:'🎆', price:100}, {id:'pf6', icon:'🏙️', price:80},
+                {id:'pf7', icon:'🌉', price:80}, {id:'pf8', icon:'🏞️', price:70}, {id:'pf9', icon:'🎑', price:70}, {id:'pf10', icon:'🌠', price:150}
+            ]},
+            { category: 'Chairs', items: [
+                {id:'c1', icon:'🪑', price:50}, {id:'c2', icon:'🛋️', price:120}, {id:'c3', icon:'💺', price:90},
+                {id:'c4', icon:'🚽', price:70}, {id:'c5', icon:'🦼', price:150}, {id:'c6', icon:'🦽', price:150},
+                {id:'c7', icon:'🧎', price:50}, {id:'c8', icon:'🧘', price:60}
+            ]},
+            { category: 'Stuffies', items: [
+                {id:'s1', icon:'🧸', price:80}, {id:'s2', icon:'🐰', price:100}, {id:'s3', icon:'🦊', price:120},
+                {id:'s4', icon:'🐼', price:150}, {id:'s5', icon:'🐨', price:150}, {id:'s6', icon:'🐯', price:130},
+                {id:'s7', icon:'🦁', price:130}, {id:'s8', icon:'🐮', price:90}, {id:'s9', icon:'🐷', price:90}, {id:'s10', icon:'🐸', price:70}
+            ]},
+            { category: 'Toys', items: [
+                {id:'ty1', icon:'🚗', price:50}, {id:'ty2', icon:'🚜', price:80}, {id:'ty3', icon:'🚁', price:150},
+                {id:'ty4', icon:'🚀', price:200}, {id:'ty5', icon:'🚂', price:120}, {id:'ty6', icon:'⛵', price:90},
+                {id:'ty7', icon:'🪁', price:60}, {id:'ty8', icon:'🪀', price:50}, {id:'ty9', icon:'🧩', price:60}, {id:'ty10', icon:'🎮', price:250}
+            ]},
+            { category: 'Furniture', items: [
+                {id:'f1', icon:'🛏️', price:150}, {id:'f2', icon:'🛌', price:180}, {id:'f3', icon:'🚪', price:60},
+                {id:'f4', icon:'🪟', price:80}, {id:'f5', icon:'🛁', price:200}, {id:'f6', icon:'🚿', price:150},
+                {id:'f7', icon:'🧺', price:50}, {id:'f8', icon:'🗄️', price:100}, {id:'f9', icon:'🕰️', price:250}, {id:'f10', icon:'🏺', price:120}
+            ]},
+            { category: 'Food', items: [
+                {id:'fd1', icon:'🍎', price:50}, {id:'fd2', icon:'🍌', price:50}, {id:'fd3', icon:'🍉', price:60},
+                {id:'fd4', icon:'🍇', price:60}, {id:'fd5', icon:'🍓', price:70}, {id:'fd6', icon:'🍕', price:100},
+                {id:'fd7', icon:'🍔', price:100}, {id:'fd8', icon:'🍟', price:80}, {id:'fd9', icon:'🍫', price:50}, {id:'fd10', icon:'🍰', price:120}
+            ]},
+            { category: 'Sports', items: [
+                {id:'sp1', icon:'⚽', price:60}, {id:'sp2', icon:'🏀', price:70}, {id:'sp3', icon:'🏈', price:70},
+                {id:'sp4', icon:'⚾', price:50}, {id:'sp5', icon:'🎾', price:60}, {id:'sp6', icon:'🏐', price:60},
+                {id:'sp7', icon:'🏉', price:80}, {id:'sp8', icon:'🎱', price:90}, {id:'sp9', icon:'🥊', price:100}, {id:'sp10', icon:'🏓', price:80}
+            ]}
+        ];
+
+        function openCloset() {
+            renderShop();
+            document.getElementById('closet-modal').style.display = 'flex';
+        }
+
+        function renderShop() {
+            const container = document.getElementById('shop-categories');
+            container.innerHTML = '';
+            
+            shopData.forEach(cat => {
+                let html = `<div class="mb-4"><h3 class="text-xl font-bold text-gray-700 mb-2 border-b-2 border-gray-200 pb-1">${cat.category}</h3><div class="flex gap-4 overflow-x-auto pb-2">`;
+                
+                cat.items.forEach(item => {
+                    const owned = state.inventory.includes(item.id);
+                    html += `
+                        <div class="bg-gray-50 border-2 ${owned ? 'border-green-400 bg-green-50' : 'border-gray-200'} rounded-lg p-4 min-w-[120px] flex flex-col items-center justify-between">
+                            <div class="text-5xl mb-2">${item.icon}</div>
+                            ${owned 
+                                ? `<button onclick="spawnItem('${item.id}', '${item.icon}')" class="bg-green-500 text-white px-3 py-1 rounded-full text-sm font-bold w-full">Place</button>`
+                                : `<button onclick="buyItem('${item.id}', ${item.price})" class="bg-yellow-400 text-yellow-900 px-3 py-1 rounded-full text-sm font-bold w-full shadow-sm"><i class="fas fa-coins text-xs"></i> ${item.price}</button>`
+                            }
+                        </div>
+                    `;
+                });
+                html += `</div></div>`;
+                container.innerHTML += html;
+            });
+        }
+
+        function buyItem(id, price) {
+            if (state.coins >= price) {
+                updateCoins(-price);
+                state.inventory.push(id);
+                playDing();
+                renderShop();
+            } else {
+                alertCustom("Not enough coins! Play minigames to earn more.");
+            }
+        }
+
+        // Custom alert to avoid native alert()
+        function alertCustom(msg) {
+            const fb = document.getElementById('mg-feedback');
+            // Hacky reuse of feedback for quick alerts if needed, or just a temporary banner
+            const banner = document.createElement('div');
+            banner.className = "fixed top-20 left-1/2 transform -translate-x-1/2 bg-red-500 text-white px-6 py-3 rounded-full font-bold shadow-lg z-[200] transition-opacity";
+            banner.innerText = msg;
+            document.body.appendChild(banner);
+            setTimeout(() => { banner.style.opacity = '0'; setTimeout(()=>banner.remove(),300); }, 2000);
+        }
+
+        /* --- DRAG AND DROP SYSTEM FOR FURNITURE --- */
+        let draggedEl = null;
+        let dragOffsetX = 0, dragOffsetY = 0;
+
+        function spawnItem(id, icon) {
+            closeModal('closet-modal');
+            const house = document.getElementById('house-container');
+            const el = document.createElement('div');
+            el.className = 'furniture-item';
+            el.innerHTML = icon;
+            el.dataset.id = id;
+            
+            // Spawn in center
+            el.style.left = '45%';
+            el.style.top = '45%';
+            
+            // Touch and Mouse events
+            el.addEventListener('mousedown', startDrag);
+            el.addEventListener('touchstart', startDrag, {passive: false});
+            
+            house.appendChild(el);
+            state.placedItems.push({el: el, id: id});
+            playDing();
+        }
+
+        function startDrag(e) {
+            if (state.isHouseMode) {
+                const el = this;
+                const itemId = el.dataset.id;
+                let animClass = 'anim-bounce';
+                if (itemId.startsWith('pf') || itemId.startsWith('f') || itemId.startsWith('c')) animClass = 'anim-light';
+                if (itemId.startsWith('s') || itemId.startsWith('fd') || itemId.startsWith('ty')) animClass = 'anim-wiggle';
+                
+                el.classList.add(animClass);
+                setTimeout(() => el.classList.remove(animClass), 500);
+                playDing();
+                return;
+            }
+            e.preventDefault();
+            draggedEl = this;
+            const rect = draggedEl.getBoundingClientRect();
+            const clientX = e.type.includes('mouse') ? e.clientX : e.touches[0].clientX;
+            const clientY = e.type.includes('mouse') ? e.clientY : e.touches[0].clientY;
+            
+            dragOffsetX = clientX - rect.left;
+            dragOffsetY = clientY - rect.top;
+
+            document.addEventListener('mousemove', drag);
+            document.addEventListener('touchmove', drag, {passive: false});
+            document.addEventListener('mouseup', endDrag);
+            document.addEventListener('touchend', endDrag);
+        }
+
+        function drag(e) {
+            if (!draggedEl) return;
+            e.preventDefault();
+            const clientX = e.type.includes('mouse') ? e.clientX : e.touches[0].clientX;
+            const clientY = e.type.includes('mouse') ? e.clientY : e.touches[0].clientY;
+            
+            const houseRect = document.getElementById('house-container').getBoundingClientRect();
+            
+            let newLeft = clientX - houseRect.left - dragOffsetX;
+            let newTop = clientY - houseRect.top - dragOffsetY;
+            
+            draggedEl.style.left = newLeft + 'px';
+            draggedEl.style.top = newTop + 'px';
+        }
+
+        function endDrag(e) {
+            if (!draggedEl) return;
+            // Simple overlap check (bounding box) against other items
+            const rect1 = draggedEl.getBoundingClientRect();
+            let overlap = false;
+            
+            state.placedItems.forEach(item => {
+                if (item.el !== draggedEl) {
+                    const rect2 = item.el.getBoundingClientRect();
+                    if (!(rect1.right < rect2.left || rect1.left > rect2.right || rect1.bottom < rect2.top || rect1.top > rect2.bottom)) {
+                        overlap = true;
+                    }
+                }
+            });
+
+            if (overlap) {
+                // Bounce back slightly if overlapping (simple resolution for prototype)
+                draggedEl.style.left = (parseInt(draggedEl.style.left) - 20) + 'px';
+                draggedEl.style.top = (parseInt(draggedEl.style.top) - 20) + 'px';
+            }
+
+            document.removeEventListener('mousemove', drag);
+            document.removeEventListener('touchmove', drag);
+            document.removeEventListener('mouseup', endDrag);
+            document.removeEventListener('touchend', endDrag);
+            draggedEl = null;
+        }
+
+
+        /* --- MINIGAME SYSTEM --- */
+        let mgState = {
+            type: '',
+            questions: [],
+            currentQ: 0,
+            firstTry: true,
+            activeData: null,
+            timer: null,
+            timeLeft: 120,
+            score: 0
+        };
+
+        const emojis = ['🍎','🐶','🚗','🚀','🌟','🐱','🍕','🎸','🚲','🏀','🧸','🐢','🐞','🦋','🦄','🦖','🍦','🎈','💎','🛸'];
+
+        function startMinigame(type) {
+            mgState.type = type;
+            mgState.currentQ = 0;
+            mgState.score = 0;
+            if (mgState.timer) clearInterval(mgState.timer);
+            
+            mgState.questions = generateQuestions(type, state.gradeLevel);
+            
+            document.getElementById('minigame-modal').style.display = 'flex';
+            
+            const titles = {
+                'kitchen': 'Flash Cards (Kitchen)',
+                'basement': 'Scale Balancer (Basement)',
+                'bedroom': 'Matching Cards (Bedroom)',
+                'living': 'Speed Run (Living Room)'
+            };
+            document.getElementById('minigame-title').innerText = titles[type];
+            
+            if (type === 'living') {
+                mgState.timeLeft = 120;
+                startSpeedRun();
+            } else if (type === 'bedroom') {
+                mgState.activeData = { flipped: [], matchedCount: 0 };
+                loadQuestion();
+            } else {
+                loadQuestion();
+            }
+        }
+
+        function closeMinigame() {
+            document.getElementById('minigame-modal').style.display = 'none';
+            if (mgState.timer) clearInterval(mgState.timer);
+        }
+
+        function loadQuestion() {
+            mgState.firstTry = true;
+            document.getElementById('mg-feedback').innerText = '';
+            document.getElementById('mg-feedback').className = 'text-2xl font-bold text-center mt-6 h-10';
+            
+            const area = document.getElementById('minigame-area');
+            area.innerHTML = '';
+
+            if (mgState.type === 'kitchen') {
+                document.getElementById('mg-q-count').innerText = `${mgState.score} of 20 Solved`;
+                renderKitchenGrid(area);
+            } else if (mgState.type === 'basement') {
+                document.getElementById('mg-q-count').innerText = `${mgState.currentQ + 1} of 10`;
+                renderBasementUI(mgState.questions[mgState.currentQ], area);
+            } else if (mgState.type === 'bedroom') {
+                document.getElementById('mg-q-count').innerText = `${mgState.activeData.matchedCount} of 10 Pairs`;
+                renderBedroomUI(area);
+            } else if (mgState.type === 'living') {
+                document.getElementById('mg-q-count').innerText = `Score: ${mgState.score}`;
+                renderLivingUI(mgState.questions[mgState.currentQ], area);
+            }
+        }
+
+        function generateQuestions(type, level) {
+            let qs = [];
+            let isGr2 = level === 'Gr2';
+            
+            if (type === 'kitchen') {
+                // 20 Flashcards: Half 1-step, Half 2-step
+                for(let i=0; i<20; i++) {
+                    let isHard = i >= 10;
+                    let maxNum = isGr2 ? (isHard ? 500 : 100) : (isHard ? 20 : 20);
+                    let qText, ans;
+                    
+                    if (!isHard) {
+                        let a = Math.floor(Math.random() * (maxNum/2)) + (maxNum/4);
+                        let b = Math.floor(Math.random() * a);
+                        qText = `Sam had ${Math.floor(a)} apples. He gave ${Math.floor(b)} away. How many are left?`;
+                        ans = Math.floor(a - b);
+                    } else {
+                        let a = Math.floor(Math.random() * (maxNum/3)) + 10;
+                        let b = Math.floor(Math.random() * (maxNum/3)) + 5;
+                        let c = Math.floor(Math.random() * (a+b-2)) + 1;
+                        qText = `Mia found ${Math.floor(a)} shells, then found ${Math.floor(b)} more. She lost ${Math.floor(c)}. How many does she have now?`;
+                        ans = Math.floor(a + b - c);
+                    }
+
+                    let options = new Set([ans]);
+                    while(options.size < 4) {
+                        let offset = Math.floor(Math.random() * 10) - 5;
+                        if(offset === 0) offset = 2;
+                        let wrong = ans + offset;
+                        if (wrong >= 0) options.add(wrong);
+                    }
+                    
+                    qs.push({
+                        emoji: emojis[i % emojis.length],
+                        text: qText,
+                        answer: ans,
+                        options: Array.from(options).sort(()=>Math.random()-0.5),
+                        solved: false
+                    });
+                }
+            } else if (type === 'basement') {
+                for(let i=0; i<10; i++) {
+                    let isHard = i >= 5;
+                    let targetSum = isGr2 
+                        ? (isHard ? Math.floor(Math.random()*500)+500 : Math.floor(Math.random()*80)+20)
+                        : (isHard ? Math.floor(Math.random()*10)+10 : Math.floor(Math.random()*8)+5);
+                    
+                    let a = Math.floor(Math.random() * (targetSum-2)) + 1;
+                    let c = Math.floor(Math.random() * (targetSum-2)) + 1;
+                    qs.push({ nums: [a, targetSum-a, c, targetSum-c].sort(()=>Math.random()-0.5), target: targetSum });
+                }
+            } else if (type === 'bedroom') {
+                // Matching Cards: 10 pairs (20 cards)
+                let usedAnswers = new Set();
+                let pairs = [];
+                for(let i=0; i<10; i++) {
+                    let ans, a, b, eq;
+                    do {
+                        let max = isGr2 ? 50 : 15;
+                        a = Math.floor(Math.random() * max) + 1;
+                        b = Math.floor(Math.random() * max) + 1;
+                        if (Math.random() > 0.5) { ans = a + b; eq = `${a} + ${b}`; } 
+                        else { ans = Math.max(a,b) - Math.min(a,b); eq = `${Math.max(a,b)} - ${Math.min(a,b)}`; }
+                    } while(usedAnswers.has(ans));
+                    usedAnswers.add(ans);
+                    pairs.push({pairId: i, text: eq}); // Card A
+                    pairs.push({pairId: i, text: ans.toString()}); // Card B
+                }
+                qs = pairs.sort(() => Math.random() - 0.5); // Shuffle
+            } else if (type === 'living') {
+                // Speed Run: generate lots of basic questions
+                for(let i=0; i<100; i++) {
+                    let max = isGr2 ? 100 : 20;
+                    let a = Math.floor(Math.random() * max) + 1;
+                    let b = Math.floor(Math.random() * max) + 1;
+                    let isAdd = Math.random() > 0.5;
+                    let eq = isAdd ? `${a} + ${b} = ?` : `${Math.max(a,b)} - ${Math.min(a,b)} = ?`;
+                    let ans = isAdd ? a + b : Math.max(a,b) - Math.min(a,b);
+                    
+                    let options = new Set([ans]);
+                    while(options.size < 4) {
+                        let wrong = ans + (Math.floor(Math.random() * 10) - 5);
+                        if(wrong !== ans && wrong >= 0) options.add(wrong);
+                    }
+                    qs.push({ text: eq, answer: ans, options: Array.from(options).sort(()=>Math.random()-0.5) });
+                }
+            }
+            return qs;
+        }
+
+        /* --- KITCHEN (FLASH CARDS) LOGIC --- */
+        function renderKitchenGrid(area) {
+            let html = `<div class="card-grid">`;
+            mgState.questions.forEach((q, idx) => {
+                html += `<div class="small-card ${q.solved ? 'hidden-card' : ''}" onclick="openKitchenCard(${idx})">${q.emoji}</div>`;
+            });
+            html += `</div>`;
+            area.innerHTML = html;
+        }
+
+        function openKitchenCard(idx) {
+            mgState.currentQ = idx;
+            mgState.firstTry = true;
+            const q = mgState.questions[idx];
+            const area = document.getElementById('minigame-area');
+            
+            area.innerHTML = `
+                <div class="flashcard w-full mt-4" style="perspective: none;">
+                    <div class="flashcard-inner" style="transform: none; box-shadow: none;">
+                        <div class="w-full bg-white border-4 border-indigo-500 rounded-2xl p-6 flex flex-col items-center">
+                            <div class="text-6xl mb-4">${q.emoji}</div>
+                            <div class="flex items-center justify-center gap-2 mb-6">
+                                <p class="text-2xl font-bold text-gray-800">${q.text}</p>
+                                <button class="tts-btn" onclick="speakText('${q.text}')"><i class="fas fa-volume-up text-white"></i></button>
+                            </div>
+                            <div class="mcq-grid" style="max-width: 500px; margin: 0 auto;">
+                                ${q.options.map(opt => `<button class="mcq-btn" onclick="checkKitchenAnswer(${opt}, this)">${opt}</button>`).join('')}
+                            </div>
+                            <button class="mt-6 text-gray-500 underline text-lg" onclick="loadQuestion()">Back to Grid</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function checkKitchenAnswer(selected, btnEl) {
+            const q = mgState.questions[mgState.currentQ];
+            const feedback = document.getElementById('mg-feedback');
+            
+            if (selected === q.answer) {
+                btnEl.style.background = '#2ed573';
+                btnEl.style.color = 'white';
+                feedback.innerText = 'Correct! ✅';
+                feedback.className = 'text-2xl font-bold text-center mt-6 h-10 text-green-500';
+                playDing();
+                
+                if (mgState.firstTry) updateCoins(5);
+                q.solved = true;
+                mgState.score++;
+                
+                if (mgState.score >= 20) {
+                    setTimeout(() => finishMinigame(30), 1000);
+                } else {
+                    setTimeout(loadQuestion, 1000);
+                }
+            } else {
+                btnEl.style.background = '#ff4757';
+                btnEl.style.color = 'white';
+                feedback.innerText = 'Try Again! Hint: Read carefully.';
+                feedback.className = 'text-2xl font-bold text-center mt-6 h-10 text-red-500';
+                playBuzzer();
+                mgState.firstTry = false;
+            }
+        }
+
+        /* --- BEDROOM (MATCHING CARDS) LOGIC --- */
+        function renderBedroomUI(area) {
+            let html = `<div class="card-grid">`;
+            mgState.questions.forEach((q, idx) => {
+                html += `
+                    <div class="matching-card" id="mcard-${idx}" onclick="handleMatchingClick(${idx})">
+                        <div class="matching-inner">
+                            <div class="matching-front">R</div>
+                            <div class="matching-back">${q.text}</div>
+                        </div>
+                    </div>
+                `;
+            });
+            html += `</div>`;
+            area.innerHTML = html;
+        }
+
+        function handleMatchingClick(idx) {
+            const data = mgState.activeData;
+            if (data.flipped.length >= 2 || data.flipped.includes(idx)) return;
+            
+            const cardEl = document.getElementById(`mcard-${idx}`);
+            cardEl.classList.add('flipped');
+            data.flipped.push(idx);
+            
+            if (data.flipped.length === 2) {
+                const idx1 = data.flipped[0];
+                const idx2 = data.flipped[1];
+                const q1 = mgState.questions[idx1];
+                const q2 = mgState.questions[idx2];
+                const feedback = document.getElementById('mg-feedback');
+                
+                if (q1.pairId === q2.pairId) {
+                    playDing();
+                    updateCoins(10);
+                    feedback.innerText = 'Match! +10 Coins ✅';
+                    feedback.className = 'text-2xl font-bold text-center mt-6 h-10 text-green-500';
+                    data.matchedCount++;
+                    document.getElementById('mg-q-count').innerText = `${data.matchedCount}/10 Pairs`;
+                    
+                    setTimeout(() => {
+                        document.getElementById(`mcard-${idx1}`).classList.add('matched');
+                        document.getElementById(`mcard-${idx2}`).classList.add('matched');
+                        data.flipped = [];
+                        feedback.innerText = '';
+                        if (data.matchedCount >= 10) finishMinigame(30);
+                    }, 1000);
+                } else {
+                    playBuzzer();
+                    feedback.innerText = 'Not a match.';
+                    feedback.className = 'text-2xl font-bold text-center mt-6 h-10 text-red-500';
+                    setTimeout(() => {
+                        document.getElementById(`mcard-${idx1}`).classList.remove('flipped');
+                        document.getElementById(`mcard-${idx2}`).classList.remove('flipped');
+                        data.flipped = [];
+                        feedback.innerText = '';
+                    }, 1200);
+                }
+            }
+        }
+
+        /* --- LIVING ROOM (SPEED RUN) LOGIC --- */
+        function startSpeedRun() {
+            mgState.timer = setInterval(() => {
+                mgState.timeLeft--;
+                const timerEl = document.getElementById('speed-timer-display');
+                if(timerEl) timerEl.innerText = `⏳ ${mgState.timeLeft}s`;
+                
+                if (mgState.timeLeft <= 0) {
+                    clearInterval(mgState.timer);
+                    endSpeedRun();
+                }
+            }, 1000);
+            loadQuestion();
+        }
+
+        function renderLivingUI(q, area) {
+            area.innerHTML = `
+                <div id="speed-timer-display" class="speed-timer">⏳ ${mgState.timeLeft}s</div>
+                <div class="bg-white border-4 border-yellow-400 rounded-2xl p-8 mt-6 flex flex-col items-center w-full max-w-md shadow-lg">
+                    <p class="text-4xl font-bold text-gray-800 mb-8">${q.text}</p>
+                    <div class="mcq-grid w-full">
+                        ${q.options.map(opt => `<button class="mcq-btn py-4 text-2xl" onclick="checkSpeedAnswer(${opt}, this)">${opt}</button>`).join('')}
+                    </div>
+                </div>
+            `;
+        }
+
+        function checkSpeedAnswer(selected, btnEl) {
+            const q = mgState.questions[mgState.currentQ];
+            if (selected === q.answer) {
+                btnEl.style.background = '#2ed573';
+                btnEl.style.color = 'white';
+                playDing();
+                updateCoins(5);
+                mgState.score++;
+                document.getElementById('mg-q-count').innerText = `Score: ${mgState.score}`;
+                
+                setTimeout(() => {
+                    mgState.currentQ++;
+                    if(mgState.timeLeft > 0) loadQuestion();
+                }, 300);
+            } else {
+                btnEl.style.background = '#ff4757';
+                btnEl.style.color = 'white';
+                playBuzzer();
+                // Speed run forces them to keep guessing to save time
+            }
+        }
+
+        function endSpeedRun() {
+            const area = document.getElementById('minigame-area');
+            const success = mgState.score >= 10;
+            area.innerHTML = `
+                <div class="text-center py-10">
+                    <div class="text-6xl mb-4">⏱️</div>
+                    <h2 class="text-4xl brand-font text-blue-600 mb-4">Time's Up!</h2>
+                    <p class="text-2xl text-gray-700 mb-4">You answered ${mgState.score} questions correctly.</p>
+                    ${success 
+                        ? `<p class="text-xl text-green-600 font-bold">Awesome! You reached the goal and got a 30 coin bonus!</p>` 
+                        : `<p class="text-xl text-orange-600 font-bold">You need 10 correct to get the bonus. Keep practicing!</p>`
+                    }
+                </div>
+            `;
+            document.getElementById('mg-feedback').innerText = '';
+            if (success) {
+                updateCoins(30);
+                playDing();
+            }
+            setTimeout(closeMinigame, 4000);
+        }
+
+        /* --- BASEMENT (SCALE BALANCER) LOGIC --- */
+        let scaleDragEl = null;
+        let scaleDragGhost = null;
+        let scaleStartX = 0, scaleStartY = 0;
+
+        function renderBasementUI(q, area) {
+            mgState.activeData = { slots: [null, null, null, null], bank: [...q.nums] };
+            const instructions = `Balance the scale! Make both sides add up to the same number.`;
+
+            let html = `
+                <div class="flex items-center justify-center gap-2 mb-4 w-full">
+                    <p class="text-xl font-bold text-gray-700 text-center">${instructions}</p>
+                    <button class="tts-btn" onclick="speakText('${instructions}')"><i class="fas fa-volume-up text-white"></i></button>
+                </div>
+                
+                <div class="scale-container w-full" id="scale-game-area">
+                    <div class="scale-base"></div>
+                    <div class="scale-arm" id="scale-arm">
+                        <div class="scale-bucket" id="bucket-left">
+                            <div class="scale-slot-circle slot-target" data-idx="0"></div>
+                            <div class="scale-slot-circle slot-target" data-idx="1"></div>
+                        </div>
+                        <div class="scale-bucket" id="bucket-right">
+                            <div class="scale-slot-circle slot-target" data-idx="2"></div>
+                            <div class="scale-slot-circle slot-target" data-idx="3"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="number-bank bg-gray-200 p-4 rounded-xl w-full max-w-md shadow-inner mt-8" id="scale-bank">
+                </div>
+                
+                <button onclick="checkBasementAnswer()" class="mt-8 bg-blue-500 text-white px-8 py-3 rounded-full font-bold text-xl shadow-lg border-4 border-blue-700">Check Balance</button>
+            `;
+            area.innerHTML = html;
+            updateScaleUI();
+        }
+
+        function updateScaleUI() {
+            const data = mgState.activeData;
+            
+            document.querySelectorAll('.slot-target').forEach(el => el.innerHTML = '');
+            const bank = document.getElementById('scale-bank');
+            bank.innerHTML = '';
+            
+            [0, 1, 2, 3].forEach(i => {
+                if (data.slots[i] !== null) {
+                    const target = document.querySelector(`.slot-target[data-idx="${i}"]`);
+                    target.innerHTML = `<div class="scale-num draggable-num cursor-grab" data-val="${data.slots[i]}" data-loc="slot" data-idx="${i}" onmousedown="startScaleDrag(event)" ontouchstart="startScaleDrag(event, {passive: false})">${data.slots[i]}</div>`;
+                }
+            });
+
+            data.bank.forEach((val, i) => {
+                if (val !== null) {
+                    bank.innerHTML += `<div class="scale-num draggable-num cursor-grab" data-val="${val}" data-loc="bank" data-idx="${i}" onmousedown="startScaleDrag(event)" ontouchstart="startScaleDrag(event, {passive: false})">${val}</div>`;
+                } else {
+                    bank.innerHTML += `<div class="scale-slot-circle border-gray-400"></div>`; 
+                }
+            });
+            updateScaleTilt();
+        }
+
+        function startScaleDrag(e) {
+            e.preventDefault();
+            scaleDragEl = e.currentTarget;
+            const rect = scaleDragEl.getBoundingClientRect();
+            
+            scaleDragGhost = scaleDragEl.cloneNode(true);
+            scaleDragGhost.style.position = 'fixed';
+            scaleDragGhost.style.zIndex = '9999';
+            scaleDragGhost.style.left = rect.left + 'px';
+            scaleDragGhost.style.top = rect.top + 'px';
+            scaleDragGhost.style.pointerEvents = 'none'; 
+            scaleDragGhost.style.opacity = '0.8';
+            document.body.appendChild(scaleDragGhost);
+            
+            scaleDragEl.style.opacity = '0.3';
+
+            const clientX = e.type.includes('mouse') ? e.clientX : e.touches[0].clientX;
+            const clientY = e.type.includes('mouse') ? e.clientY : e.touches[0].clientY;
+            
+            scaleStartX = clientX - rect.left;
+            scaleStartY = clientY - rect.top;
+
+            document.addEventListener('mousemove', dragScaleMove);
+            document.addEventListener('touchmove', dragScaleMove, {passive: false});
+            document.addEventListener('mouseup', endScaleDrag);
+            document.addEventListener('touchend', endScaleDrag);
+        }
+
+        function dragScaleMove(e) {
+            if (!scaleDragGhost) return;
+            e.preventDefault();
+            const clientX = e.type.includes('mouse') ? e.clientX : e.touches[0].clientX;
+            const clientY = e.type.includes('mouse') ? e.clientY : e.touches[0].clientY;
+            
+            scaleDragGhost.style.left = (clientX - scaleStartX) + 'px';
+            scaleDragGhost.style.top = (clientY - scaleStartY) + 'px';
+        }
+
+        function endScaleDrag(e) {
+            if (!scaleDragGhost) return;
+            const clientX = e.type.includes('mouse') ? e.clientX : e.changedTouches[0].clientX;
+            const clientY = e.type.includes('mouse') ? e.clientY : e.changedTouches[0].clientY;
+            
+            scaleDragGhost.remove();
+            scaleDragGhost = null;
+            
+            document.removeEventListener('mousemove', dragScaleMove);
+            document.removeEventListener('touchmove', dragScaleMove);
+            document.removeEventListener('mouseup', endScaleDrag);
+            document.removeEventListener('touchend', endScaleDrag);
+
+            scaleDragEl.style.visibility = 'hidden';
+            const dropTarget = document.elementFromPoint(clientX, clientY);
+            scaleDragEl.style.visibility = 'visible';
+
+            const slotTarget = dropTarget ? dropTarget.closest('.slot-target, #scale-bank') : null;
+            
+            const fromLoc = scaleDragEl.dataset.loc;
+            const fromIdx = parseInt(scaleDragEl.dataset.idx);
+            const val = parseInt(scaleDragEl.dataset.val);
+            const data = mgState.activeData;
+
+            if (slotTarget) {
+                if (slotTarget.classList.contains('slot-target')) {
+                    const toIdx = parseInt(slotTarget.dataset.idx);
+                    const existingVal = data.slots[toIdx];
+                    data.slots[toIdx] = val;
+                    
+                    if (fromLoc === 'bank') {
+                        data.bank[fromIdx] = existingVal;
+                    } else {
+                        data.slots[fromIdx] = existingVal;
+                    }
+                    playDing();
+                } else if (slotTarget.id === 'scale-bank') {
+                    let emptyBankIdx = data.bank.indexOf(null);
+                    if (emptyBankIdx === -1) emptyBankIdx = fromIdx; 
+                    
+                    if (fromLoc === 'slot') {
+                        data.bank[emptyBankIdx] = val;
+                        data.slots[fromIdx] = null;
+                        playDing();
+                    }
+                }
+            }
+            updateScaleUI();
+        }
+
+        function updateScaleTilt() {
+            const data = mgState.activeData;
+            let leftSum = (data.slots[0] || 0) + (data.slots[1] || 0);
+            let rightSum = (data.slots[2] || 0) + (data.slots[3] || 0);
+            
+            const arm = document.getElementById('scale-arm');
+            if (leftSum > rightSum) arm.style.transform = 'rotate(-10deg)';
+            else if (rightSum > leftSum) arm.style.transform = 'rotate(10deg)';
+            else arm.style.transform = 'rotate(0deg)';
+        }
+
+        function checkBasementAnswer() {
+            const data = mgState.activeData;
+            const feedback = document.getElementById('mg-feedback');
+            
+            if (data.slots.includes(null)) {
+                feedback.innerText = 'Fill all 4 slots first!';
+                feedback.className = 'text-xl font-bold text-center mt-6 h-10 text-orange-500';
+                return;
+            }
+
+            let leftSum = data.slots[0] + data.slots[1];
+            let rightSum = data.slots[2] + data.slots[3];
+
+            if (leftSum === rightSum) {
+                feedback.innerText = 'Perfect Balance! ✅';
+                feedback.className = 'text-2xl font-bold text-center mt-6 h-10 text-green-500';
+                playDing();
+                if (mgState.firstTry) updateCoins(10);
+                setTimeout(() => {
+                    mgState.currentQ++;
+                    if (mgState.currentQ >= 10) finishMinigame(30);
+                    else loadQuestion();
+                }, 1500);
+            } else {
+                feedback.innerText = `Left is ${leftSum}, Right is ${rightSum}. Try again!`;
+                feedback.className = 'text-xl font-bold text-center mt-6 h-10 text-red-500';
+                playBuzzer();
+                mgState.firstTry = false;
+            }
+        }
+
+        /* --- GLOBAL WIN STATE --- */
+        function finishMinigame(bonus) {
+            document.getElementById('minigame-area').innerHTML = `
+                <div class="text-center py-10">
+                    <div class="text-6xl mb-4">🎉</div>
+                    <h2 class="text-3xl brand-font text-green-600 mb-4">Activity Complete!</h2>
+                    <p class="text-xl text-gray-700">You earned a ${bonus} coin bonus!</p>
+                </div>
+            `;
+            document.getElementById('mg-feedback').innerText = '';
+            updateCoins(bonus);
+            playDing();
+            setTimeout(closeMinigame, 3000);
+        }
+
+        // Initialize Audio context on first click anywhere (browser requirement)
+        document.body.addEventListener('click', () => {
+            if(audioCtx.state === 'suspended') audioCtx.resume();
+        }, {once: true});
+        document.body.addEventListener('touchstart', () => {
+            if(audioCtx.state === 'suspended') audioCtx.resume();
+        }, {once: true});
+
+    </script>
+</body>
+</html>
