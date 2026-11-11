@@ -87,21 +87,24 @@
         .basement { background: #d3d3d3; }
 
         .play-btn {
+            position: absolute;
+            top: 5px;
+            right: 5px;
             background: linear-gradient(45deg, #ff0000, #ff7f00, #ffff00, #00ff00, #0000ff, #4b0082, #9400d3);
             color: white;
-            padding: 12px 24px;
-            border-radius: 30px;
+            padding: 6px 12px;
+            border-radius: 15px;
             font-family: 'Fredoka One', cursive;
-            font-size: 1.5rem;
+            font-size: 0.9rem;
             cursor: pointer;
-            border: 4px solid white;
-            box-shadow: 0 4px 0 #333;
+            border: 2px solid white;
+            box-shadow: 0 2px 0 #333;
             transition: transform 0.1s;
-            text-shadow: 2px 2px 0 #000;
+            text-shadow: 1px 1px 0 #000;
             z-index: 10;
         }
         .play-btn:active {
-            transform: translateY(4px);
+            transform: translateY(2px);
             box-shadow: 0 0 0 #333;
         }
 
@@ -149,6 +152,21 @@
             transform: translateY(4px);
             box-shadow: 0 0 0 #333;
         }
+
+        /* Animations */
+        @keyframes rainbowGlow {
+            0% { filter: drop-shadow(0 0 10px red); }
+            33% { filter: drop-shadow(0 0 15px lime); }
+            66% { filter: drop-shadow(0 0 10px blue); }
+            100% { filter: drop-shadow(0 0 10px red); }
+        }
+        .anim-rainbow-glow { animation: rainbowGlow 1.5s infinite; }
+        
+        @keyframes jumpAnim {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-40px); }
+        }
+        .anim-jump { animation: jumpAnim 0.4s ease-out; }
 
         /* Modals & Overlays */
         .modal {
@@ -493,6 +511,7 @@
     <div class="controls">
         <div class="control-btn" onmousedown="moveAvatar('left')" onmouseup="stopAvatar()" ontouchstart="moveAvatar('left')" ontouchend="stopAvatar()"><i class="fas fa-arrow-left"></i></div>
         <div class="control-btn" onmousedown="moveAvatar('up')" onmouseup="stopAvatar()" ontouchstart="moveAvatar('up')" ontouchend="stopAvatar()"><i class="fas fa-arrow-up"></i></div>
+        <div class="control-btn" onclick="jumpAvatar()"><i class="fas fa-arrow-up text-blue-500"></i></div>
         <div class="control-btn" onmousedown="moveAvatar('down')" onmouseup="stopAvatar()" ontouchstart="moveAvatar('down')" ontouchend="stopAvatar()"><i class="fas fa-arrow-down"></i></div>
         <div class="control-btn" onmousedown="moveAvatar('right')" onmouseup="stopAvatar()" ontouchstart="moveAvatar('right')" ontouchend="stopAvatar()"><i class="fas fa-arrow-right"></i></div>
     </div>
@@ -563,6 +582,7 @@
             gradeLevel: 'SK', // 'SK' or 'Gr2'
             inventory: [], // IDs of purchased items
             placedItems: [], // {id, domId, x, y, roomId}
+            equipped: { shirt: 'default', hat: 'none' }, // Avatar gear
             isHouseMode: false
         };
 
@@ -581,6 +601,7 @@
                 coins: state.coins,
                 gradeLevel: state.gradeLevel,
                 inventory: state.inventory,
+                equipped: state.equipped,
                 placedItems: state.placedItems.map(item => ({
                     id: item.id,
                     icon: item.el.innerHTML,
@@ -598,10 +619,12 @@
                     state.coins = parsed.coins ?? 50;
                     state.gradeLevel = parsed.gradeLevel ?? 'SK';
                     state.inventory = parsed.inventory ?? [];
+                    state.equipped = parsed.equipped ?? { shirt: 'default', hat: 'none' };
                     const loadedItems = parsed.placedItems ?? [];
                     
                     coinEl.innerText = state.coins;
                     setGradeLevel(state.gradeLevel, false);
+                    renderAvatar();
                     
                     const house = document.getElementById('house-container');
                     loadedItems.forEach(itemData => {
@@ -707,12 +730,52 @@
             } catch(e) {}
         }
 
+        function playChomp() {
+            try {
+                for(let i=0; i<3; i++) {
+                    setTimeout(() => {
+                        const osc = audioCtx.createOscillator();
+                        const gain = audioCtx.createGain();
+                        osc.type = 'square';
+                        osc.frequency.setValueAtTime(150, audioCtx.currentTime);
+                        osc.frequency.exponentialRampToValueAtTime(40, audioCtx.currentTime + 0.1);
+                        gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+                        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+                        osc.connect(gain);
+                        gain.connect(audioCtx.destination);
+                        osc.start();
+                        osc.stop(audioCtx.currentTime + 0.1);
+                    }, i * 150);
+                }
+            } catch(e) {}
+        }
+
+        function playShimmer() {
+            try {
+                for(let i=0; i<6; i++) {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(1000 + (i*300), audioCtx.currentTime + (i*0.1));
+                    gain.gain.setValueAtTime(0, audioCtx.currentTime + (i*0.1));
+                    gain.gain.linearRampToValueAtTime(0.3, audioCtx.currentTime + (i*0.1) + 0.05);
+                    gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + (i*0.1) + 0.4);
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.start(audioCtx.currentTime + (i*0.1));
+                    osc.stop(audioCtx.currentTime + (i*0.1) + 0.4);
+                }
+            } catch(e) {}
+        }
+
         function speakText(text) {
             if ('speechSynthesis' in window) {
-                window.speechSynthesis.cancel();
-                const utterance = new SpeechSynthesisUtterance(text);
-                utterance.rate = 0.9;
-                window.speechSynthesis.speak(utterance);
+                window.speechSynthesis.cancel(); // Clear queue immediately
+                setTimeout(() => { // Small delay ensures engine is ready
+                    const utterance = new SpeechSynthesisUtterance(text);
+                    utterance.rate = 0.9;
+                    window.speechSynthesis.speak(utterance);
+                }, 50);
             }
         }
 
@@ -766,12 +829,58 @@
             playDing();
         }
 
+        function jumpAvatar() {
+            const sprite = document.getElementById('avatar-sprite');
+            sprite.classList.remove('anim-jump');
+            void sprite.offsetWidth; // trigger reflow
+            sprite.classList.add('anim-jump');
+        }
+
         function stopAvatar() {
             if (moveInterval) clearInterval(moveInterval);
         }
 
+        function renderAvatar() {
+            let shirtFill = '%23457b9d';
+            let shirtPattern = '';
+            let hatSvg = '';
+            
+            if (state.equipped.shirt === 'red') shirtFill = '%23ff4757';
+            if (state.equipped.shirt === 'green') shirtFill = '%232ed573';
+            if (state.equipped.shirt === 'stripes') { shirtFill = '%23ffa502'; shirtPattern = '<line x1="35" y1="60" x2="65" y2="60" stroke="white" stroke-width="4"/><line x1="35" y1="70" x2="65" y2="70" stroke="white" stroke-width="4"/><line x1="35" y1="80" x2="65" y2="80" stroke="white" stroke-width="4"/>'; }
+            if (state.equipped.shirt === 'dots') { shirtFill = '%23ff6b81'; shirtPattern = '<circle cx="45" cy="60" r="3" fill="white"/><circle cx="55" cy="70" r="3" fill="white"/><circle cx="45" cy="80" r="3" fill="white"/><circle cx="55" cy="60" r="3" fill="white"/>'; }
+
+            if (state.equipped.hat === 'cap') hatSvg = '<path d="M 30 25 Q 50 5 70 25 L 80 25 L 80 30 L 30 30 Z" fill="%233742fa"/>';
+            if (state.equipped.hat === 'crown') hatSvg = '<path d="M 35 30 L 40 10 L 50 20 L 60 10 L 65 30 Z" fill="%23eccc68"/>';
+            if (state.equipped.hat === 'beanie') hatSvg = '<path d="M 35 30 Q 50 5 65 30 Z" fill="%23ff7f50"/><circle cx="50" cy="12" r="5" fill="%23ffffff"/>';
+
+            const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+                <circle cx="50" cy="30" r="20" fill="%23fcd5ce"/>
+                <rect x="35" y="50" width="30" height="40" fill="${shirtFill}" rx="10"/>
+                ${shirtPattern}
+                <circle cx="35" cy="55" r="8" fill="%23fcd5ce"/>
+                <circle cx="65" cy="55" r="8" fill="%23fcd5ce"/>
+                ${hatSvg}
+            </svg>`;
+            document.getElementById('avatar-sprite').style.background = `url('data:image/svg+xml;utf8,${svg}') no-repeat center`;
+            document.getElementById('avatar-sprite').style.backgroundSize = 'contain';
+        }
+
         /* --- THE CLOSET (SHOP) --- */
         const shopData = [
+            { category: 'Clothes & Hats (Equip)', items: [
+                {id:'sh_red', icon:'👕', price:50, type:'clothes', slot:'shirt', val:'red'},
+                {id:'sh_green', icon:'👕', price:50, type:'clothes', slot:'shirt', val:'green'},
+                {id:'sh_stripes', icon:'🦓', price:120, type:'clothes', slot:'shirt', val:'stripes'},
+                {id:'sh_dots', icon:'🍄', price:120, type:'clothes', slot:'shirt', val:'dots'},
+                {id:'hat_cap', icon:'🧢', price:75, type:'clothes', slot:'hat', val:'cap'},
+                {id:'hat_beanie', icon:'🪖', price:100, type:'clothes', slot:'hat', val:'beanie'},
+                {id:'hat_crown', icon:'👑', price:250, type:'clothes', slot:'hat', val:'crown'}
+            ]},
+            { category: 'Premium Decor', items: [
+                {id:'prem1', icon:'💎', price:350}, {id:'prem2', icon:'🏆', price:400}, 
+                {id:'prem3', icon:'🦄', price:500}, {id:'prem4', icon:'🏰', price:600}
+            ]},
             { category: 'Picture Frames', items: [
                 {id:'pf1', icon:'🖼️', price:50}, {id:'pf2', icon:'🌅', price:60}, {id:'pf3', icon:'🌄', price:60},
                 {id:'pf4', icon:'🌌', price:100}, {id:'pf5', icon:'🎆', price:100}, {id:'pf6', icon:'🏙️', price:80},
@@ -823,13 +932,20 @@
                 
                 cat.items.forEach(item => {
                     const owned = state.inventory.includes(item.id);
+                    let actionBtn = '';
+                    if (!owned) {
+                        actionBtn = `<button onclick="buyItem('${item.id}', ${item.price})" class="bg-yellow-400 text-yellow-900 px-3 py-1 rounded-full text-sm font-bold w-full shadow-sm"><i class="fas fa-coins text-xs"></i> ${item.price}</button>`;
+                    } else if (item.type === 'clothes') {
+                        const isEq = state.equipped[item.slot] === item.val;
+                        actionBtn = `<button onclick="equipItem('${item.slot}', '${item.val}')" class="${isEq ? 'bg-indigo-500' : 'bg-blue-400'} text-white px-3 py-1 rounded-full text-sm font-bold w-full">${isEq ? 'Equipped' : 'Equip'}</button>`;
+                    } else {
+                        actionBtn = `<button onclick="spawnItem('${item.id}', '${item.icon}')" class="bg-green-500 text-white px-3 py-1 rounded-full text-sm font-bold w-full">Place</button>`;
+                    }
+                    
                     html += `
                         <div class="bg-gray-50 border-2 ${owned ? 'border-green-400 bg-green-50' : 'border-gray-200'} rounded-lg p-4 min-w-[120px] flex flex-col items-center justify-between">
                             <div class="text-5xl mb-2">${item.icon}</div>
-                            ${owned 
-                                ? `<button onclick="spawnItem('${item.id}', '${item.icon}')" class="bg-green-500 text-white px-3 py-1 rounded-full text-sm font-bold w-full">Place</button>`
-                                : `<button onclick="buyItem('${item.id}', ${item.price})" class="bg-yellow-400 text-yellow-900 px-3 py-1 rounded-full text-sm font-bold w-full shadow-sm"><i class="fas fa-coins text-xs"></i> ${item.price}</button>`
-                            }
+                            ${actionBtn}
                         </div>
                     `;
                 });
@@ -860,10 +976,27 @@
             document.body.appendChild(banner);
             setTimeout(() => { banner.style.opacity = '0'; setTimeout(()=>banner.remove(),300); }, 2000);
         }
+        
+        function equipItem(slot, val) {
+            state.equipped[slot] = val;
+            renderAvatar();
+            renderShop();
+            saveGame();
+            playDing();
+        }
+
+        function getItemPrice(id) {
+            for (let cat of shopData) {
+                let item = cat.items.find(i => i.id === id);
+                if (item) return item.price;
+            }
+            return 0;
+        }
 
         /* --- DRAG AND DROP SYSTEM FOR FURNITURE --- */
         let draggedEl = null;
         let dragOffsetX = 0, dragOffsetY = 0;
+        let dragMoved = false;
 
         function spawnItem(id, icon) {
             closeModal('closet-modal');
@@ -888,20 +1021,10 @@
         }
 
         function startDrag(e) {
-            if (state.isHouseMode) {
-                const el = this;
-                const itemId = el.dataset.id;
-                let animClass = 'anim-bounce';
-                if (itemId.startsWith('pf') || itemId.startsWith('f') || itemId.startsWith('c')) animClass = 'anim-light';
-                if (itemId.startsWith('s') || itemId.startsWith('fd') || itemId.startsWith('ty')) animClass = 'anim-wiggle';
-                
-                el.classList.add(animClass);
-                setTimeout(() => el.classList.remove(animClass), 500);
-                playDing();
-                return;
-            }
             e.preventDefault();
             draggedEl = this;
+            dragMoved = false;
+            
             const rect = draggedEl.getBoundingClientRect();
             const clientX = e.type.includes('mouse') ? e.clientX : e.touches[0].clientX;
             const clientY = e.type.includes('mouse') ? e.clientY : e.touches[0].clientY;
@@ -918,6 +1041,7 @@
         function drag(e) {
             if (!draggedEl) return;
             e.preventDefault();
+            dragMoved = true;
             const clientX = e.type.includes('mouse') ? e.clientX : e.touches[0].clientX;
             const clientY = e.type.includes('mouse') ? e.clientY : e.touches[0].clientY;
             
@@ -932,23 +1056,50 @@
 
         function endDrag(e) {
             if (!draggedEl) return;
-            // Simple overlap check (bounding box) against other items
-            const rect1 = draggedEl.getBoundingClientRect();
-            let overlap = false;
-            
-            state.placedItems.forEach(item => {
-                if (item.el !== draggedEl) {
-                    const rect2 = item.el.getBoundingClientRect();
-                    if (!(rect1.right < rect2.left || rect1.left > rect2.right || rect1.bottom < rect2.top || rect1.top > rect2.bottom)) {
-                        overlap = true;
+
+            // Handle Tap/Click logic
+            if (!dragMoved && state.isHouseMode) {
+                const itemId = draggedEl.dataset.id;
+                const price = getItemPrice(itemId);
+                
+                if (price >= 300) {
+                    draggedEl.classList.toggle('anim-rainbow-glow');
+                    playShimmer();
+                } else {
+                    let animClass = 'anim-bounce';
+                    if (itemId.startsWith('pf') || itemId.startsWith('f') || itemId.startsWith('c')) animClass = 'anim-light';
+                    if (itemId.startsWith('s') || itemId.startsWith('fd') || itemId.startsWith('ty')) animClass = 'anim-wiggle';
+                    
+                    draggedEl.classList.add(animClass);
+                    setTimeout(() => draggedEl.classList.remove(animClass), 500);
+                    playDing();
+                }
+            } else if (dragMoved) {
+                // Check if feeding the avatar (Food items start with 'fd')
+                const itemId = draggedEl.dataset.id;
+                if (itemId && itemId.startsWith('fd')) {
+                    const itemRect = draggedEl.getBoundingClientRect();
+                    const avatarRect = document.getElementById('avatar-container').getBoundingClientRect();
+                    
+                    const isOverlap = !(itemRect.right < avatarRect.left || 
+                                        itemRect.left > avatarRect.right || 
+                                        itemRect.bottom < avatarRect.top || 
+                                        itemRect.top > avatarRect.bottom);
+                                        
+                    if (isOverlap) {
+                        playChomp();
+                        const idx = state.placedItems.findIndex(i => i.el === draggedEl);
+                        if (idx > -1) state.placedItems.splice(idx, 1);
+                        draggedEl.remove();
+                        saveGame();
+                        draggedEl = null;
+                        document.removeEventListener('mousemove', drag);
+                        document.removeEventListener('touchmove', drag);
+                        document.removeEventListener('mouseup', endDrag);
+                        document.removeEventListener('touchend', endDrag);
+                        return;
                     }
                 }
-            });
-
-            if (overlap) {
-                // Bounce back slightly if overlapping (simple resolution for prototype)
-                draggedEl.style.left = (parseInt(draggedEl.style.left) - 20) + 'px';
-                draggedEl.style.top = (parseInt(draggedEl.style.top) - 20) + 'px';
             }
 
             document.removeEventListener('mousemove', drag);
@@ -1036,23 +1187,30 @@
             let isGr2 = level === 'Gr2';
             
             if (type === 'kitchen') {
-                // 20 Flashcards: Half 1-step, Half 2-step
                 for(let i=0; i<20; i++) {
-                    let isHard = i >= 10;
-                    let maxNum = isGr2 ? (isHard ? 500 : 100) : (isHard ? 20 : 20);
+                    let isSkipCount = i < 10;
                     let qText, ans;
                     
-                    if (!isHard) {
-                        let a = Math.floor(Math.random() * (maxNum/2)) + (maxNum/4);
-                        let b = Math.floor(Math.random() * a);
-                        qText = `Sam had ${Math.floor(a)} apples. He gave ${Math.floor(b)} away. How many are left?`;
-                        ans = Math.floor(a - b);
+                    if (isSkipCount) {
+                        let step = isGr2 ? (Math.floor(Math.random() * 10) + 2) : (Math.floor(Math.random() * 4) + 1);
+                        let start = isGr2 ? (Math.floor(Math.random() * 50) + 5) : (Math.floor(Math.random() * 10) + 1);
+                        ans = start + step * 3;
+                        qText = `${start}, ${start + step}, ${start + step * 2}, ___`;
                     } else {
-                        let a = Math.floor(Math.random() * (maxNum/3)) + 10;
-                        let b = Math.floor(Math.random() * (maxNum/3)) + 5;
-                        let c = Math.floor(Math.random() * (a+b-2)) + 1;
-                        qText = `Mia found ${Math.floor(a)} shells, then found ${Math.floor(b)} more. She lost ${Math.floor(c)}. How many does she have now?`;
-                        ans = Math.floor(a + b - c);
+                        let isHard = i >= 15;
+                        let maxNum = isGr2 ? (isHard ? 500 : 100) : (isHard ? 20 : 20);
+                        if (!isHard) {
+                            let a = Math.floor(Math.random() * (maxNum/2)) + (maxNum/4);
+                            let b = Math.floor(Math.random() * a);
+                            qText = `Sam had ${Math.floor(a)} apples. He gave ${Math.floor(b)} away. How many are left?`;
+                            ans = Math.floor(a - b);
+                        } else {
+                            let a = Math.floor(Math.random() * (maxNum/3)) + 10;
+                            let b = Math.floor(Math.random() * (maxNum/3)) + 5;
+                            let c = Math.floor(Math.random() * (a+b-2)) + 1;
+                            qText = `Mia found ${Math.floor(a)} shells, then found ${Math.floor(b)} more. She lost ${Math.floor(c)}. How many does she have now?`;
+                            ans = Math.floor(a + b - c);
+                        }
                     }
 
                     let options = new Set([ans]);
@@ -1096,8 +1254,8 @@
                         else { ans = Math.max(a,b) - Math.min(a,b); eq = `${Math.max(a,b)} - ${Math.min(a,b)}`; }
                     } while(usedAnswers.has(ans));
                     usedAnswers.add(ans);
-                    pairs.push({pairId: i, text: eq}); // Card A
-                    pairs.push({pairId: i, text: ans.toString()}); // Card B
+                    pairs.push({pairId: i, text: eq, isQuestion: true}); // Card A
+                    pairs.push({pairId: i, text: ans.toString(), isQuestion: false}); // Card B
                 }
                 qs = pairs.sort(() => Math.random() - 0.5); // Shuffle
             } else if (type === 'living') {
@@ -1237,12 +1395,16 @@
                     playBuzzer();
                     feedback.innerText = 'Not a match.';
                     feedback.className = 'text-2xl font-bold text-center mt-6 h-10 text-red-500';
+                    
+                    // Keep flipped for 5s if a question card was shown, else 1.2s
+                    const delay = (q1.isQuestion || q2.isQuestion) ? 5000 : 1200;
+                    
                     setTimeout(() => {
                         document.getElementById(`mcard-${idx1}`).classList.remove('flipped');
                         document.getElementById(`mcard-${idx2}`).classList.remove('flipped');
                         data.flipped = [];
                         feedback.innerText = '';
-                    }, 1200);
+                    }, delay);
                 }
             }
         }
