@@ -841,20 +841,42 @@
         }
 
         function renderAvatar() {
-            let shirtFill = '%23457b9d';
+            let shirtFill = '%23457b9d'; // default blue
             let shirtPattern = '';
             let hatSvg = '';
             
-            if (state.equipped.shirt === 'red') shirtFill = '%23ff4757';
+            // SVG definitions for the rainbow gradient
+            let defs = `<defs>
+                <linearGradient id="rainbow" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0%" stop-color="%23ff4757"/>
+                    <stop offset="25%" stop-color="%23ffa502"/>
+                    <stop offset="50%" stop-color="%232ed573"/>
+                    <stop offset="75%" stop-color="%231e90ff"/>
+                    <stop offset="100%" stop-color="%239c88ff"/>
+                </linearGradient>
+            </defs>`;
+            
+            if (state.equipped.shirt === 'pink') shirtFill = '%23ff9ff3';
+            if (state.equipped.shirt === 'blue') shirtFill = '%231e90ff';
             if (state.equipped.shirt === 'green') shirtFill = '%232ed573';
-            if (state.equipped.shirt === 'stripes') { shirtFill = '%23ffa502'; shirtPattern = '<line x1="35" y1="60" x2="65" y2="60" stroke="white" stroke-width="4"/><line x1="35" y1="70" x2="65" y2="70" stroke="white" stroke-width="4"/><line x1="35" y1="80" x2="65" y2="80" stroke="white" stroke-width="4"/>'; }
-            if (state.equipped.shirt === 'dots') { shirtFill = '%23ff6b81'; shirtPattern = '<circle cx="45" cy="60" r="3" fill="white"/><circle cx="55" cy="70" r="3" fill="white"/><circle cx="45" cy="80" r="3" fill="white"/><circle cx="55" cy="60" r="3" fill="white"/>'; }
+            if (state.equipped.shirt === 'black') shirtFill = '%232f3542';
+            if (state.equipped.shirt === 'rainbow') shirtFill = 'url(%23rainbow)';
+            
+            if (state.equipped.shirt === 'bg_stripes') { 
+                shirtFill = '%232ed573'; 
+                shirtPattern = '<line x1="35" y1="55" x2="65" y2="55" stroke="%231e90ff" stroke-width="5"/><line x1="35" y1="65" x2="65" y2="65" stroke="%231e90ff" stroke-width="5"/><line x1="35" y1="75" x2="65" y2="75" stroke="%231e90ff" stroke-width="5"/><line x1="35" y1="85" x2="65" y2="85" stroke="%231e90ff" stroke-width="5"/>'; 
+            }
+            if (state.equipped.shirt === 'pp_stripes') { 
+                shirtFill = '%23ff9ff3'; 
+                shirtPattern = '<line x1="35" y1="55" x2="65" y2="55" stroke="%239b59b6" stroke-width="5"/><line x1="35" y1="65" x2="65" y2="65" stroke="%239b59b6" stroke-width="5"/><line x1="35" y1="75" x2="65" y2="75" stroke="%239b59b6" stroke-width="5"/><line x1="35" y1="85" x2="65" y2="85" stroke="%239b59b6" stroke-width="5"/>'; 
+            }
 
             if (state.equipped.hat === 'cap') hatSvg = '<path d="M 30 25 Q 50 5 70 25 L 80 25 L 80 30 L 30 30 Z" fill="%233742fa"/>';
             if (state.equipped.hat === 'crown') hatSvg = '<path d="M 35 30 L 40 10 L 50 20 L 60 10 L 65 30 Z" fill="%23eccc68"/>';
             if (state.equipped.hat === 'beanie') hatSvg = '<path d="M 35 30 Q 50 5 65 30 Z" fill="%23ff7f50"/><circle cx="50" cy="12" r="5" fill="%23ffffff"/>';
 
             const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+                ${defs}
                 <circle cx="50" cy="30" r="20" fill="%23fcd5ce"/>
                 <rect x="35" y="50" width="30" height="40" fill="${shirtFill}" rx="10"/>
                 ${shirtPattern}
@@ -869,10 +891,13 @@
         /* --- THE CLOSET (SHOP) --- */
         const shopData = [
             { category: 'Clothes & Hats (Equip)', items: [
-                {id:'sh_red', icon:'👕', price:50, type:'clothes', slot:'shirt', val:'red'},
+                {id:'sh_pink', icon:'👕', price:50, type:'clothes', slot:'shirt', val:'pink'},
+                {id:'sh_blue', icon:'👕', price:50, type:'clothes', slot:'shirt', val:'blue'},
                 {id:'sh_green', icon:'👕', price:50, type:'clothes', slot:'shirt', val:'green'},
-                {id:'sh_stripes', icon:'🦓', price:120, type:'clothes', slot:'shirt', val:'stripes'},
-                {id:'sh_dots', icon:'🍄', price:120, type:'clothes', slot:'shirt', val:'dots'},
+                {id:'sh_black', icon:'👕', price:50, type:'clothes', slot:'shirt', val:'black'},
+                {id:'sh_rainbow', icon:'🌈', price:150, type:'clothes', slot:'shirt', val:'rainbow'},
+                {id:'sh_bg_stripes', icon:'🦓', price:120, type:'clothes', slot:'shirt', val:'bg_stripes'},
+                {id:'sh_pp_stripes', icon:'🦓', price:120, type:'clothes', slot:'shirt', val:'pp_stripes'},
                 {id:'hat_cap', icon:'🧢', price:75, type:'clothes', slot:'hat', val:'cap'},
                 {id:'hat_beanie', icon:'🪖', price:100, type:'clothes', slot:'hat', val:'beanie'},
                 {id:'hat_crown', icon:'👑', price:250, type:'clothes', slot:'hat', val:'crown'}
@@ -1025,6 +1050,13 @@
             draggedEl = this;
             dragMoved = false;
             
+            if (state.isHouseMode) {
+                // Lock movement in House Mode, only allow tapping for animations
+                document.addEventListener('mouseup', endDrag);
+                document.addEventListener('touchend', endDrag);
+                return;
+            }
+            
             const rect = draggedEl.getBoundingClientRect();
             const clientX = e.type.includes('mouse') ? e.clientX : e.touches[0].clientX;
             const clientY = e.type.includes('mouse') ? e.clientY : e.touches[0].clientY;
@@ -1039,7 +1071,7 @@
         }
 
         function drag(e) {
-            if (!draggedEl) return;
+            if (!draggedEl || state.isHouseMode) return;
             e.preventDefault();
             dragMoved = true;
             const clientX = e.type.includes('mouse') ? e.clientX : e.touches[0].clientX;
@@ -1057,8 +1089,8 @@
         function endDrag(e) {
             if (!draggedEl) return;
 
-            // Handle Tap/Click logic
-            if (!dragMoved && state.isHouseMode) {
+            // Handle Tap/Click logic (House Mode ONLY)
+            if (state.isHouseMode) {
                 const itemId = draggedEl.dataset.id;
                 const price = getItemPrice(itemId);
                 
@@ -1074,7 +1106,14 @@
                     setTimeout(() => draggedEl.classList.remove(animClass), 500);
                     playDing();
                 }
-            } else if (dragMoved) {
+                
+                document.removeEventListener('mouseup', endDrag);
+                document.removeEventListener('touchend', endDrag);
+                draggedEl = null;
+                return;
+            }
+            
+            if (dragMoved) {
                 // Check if feeding the avatar (Food items start with 'fd')
                 const itemId = draggedEl.dataset.id;
                 if (itemId && itemId.startsWith('fd')) {
@@ -1109,7 +1148,6 @@
             draggedEl = null;
             saveGame();
         }
-
 
         /* --- MINIGAME SYSTEM --- */
         let mgState = {
